@@ -25,17 +25,17 @@ public class BffMovileController {
         this.bffServiceMobile = bffServiceMobile;
     }
 
-    @GetMapping("cuenta_anual")
+    @GetMapping("/cuenta_anual")
     public ResponseEntity<List<DtoCuentaAnual>> verCuentasAnuales() {
         return ResponseEntity.ok(bffServiceMobile.verCuentasAnuales());
     }
 
-    @GetMapping("interes")
+    @GetMapping("/interes")
     public ResponseEntity<List<DtoInteres>> verIntereses() {
         return ResponseEntity.ok(bffServiceMobile.verInteresesAplicados());
     }
 
-    @GetMapping("transaccion")
+    @GetMapping("/transaccion")
     public ResponseEntity<List<DtoTransaccion>> verTransacciones() {
         return ResponseEntity.ok(bffServiceMobile.verTransacciones());
     }
