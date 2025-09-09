@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class dtoTransaccion {
+public class DtoTransaccion {
     private String fechaTransaccion;
     private Integer monto;
 }
