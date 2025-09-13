@@ -4,20 +4,10 @@ import java.util.List;
 
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
-
-import com.duoc.bff_mobile_bancoxyz.dtos.DtoCuentaAnual;
 import com.duoc.bff_mobile_bancoxyz.dtos.DtoInteres;
-import com.duoc.bff_mobile_bancoxyz.dtos.DtoTransaccion;
 
-@FeignClient(name = "bancoxyz", url = "http://localhost:8083/banco/api")
+@FeignClient(name = "ms-interes-bancoxyz", url = "http://localhost:8083/banco/api")
 public interface InteresRestClientMobile {
-
-    @GetMapping("/transacciones")
-    List<DtoTransaccion> listarTransacciones();
-
-    @GetMapping("/cuentas-anuales")
-    List<DtoCuentaAnual> listarCuentasAnuales();
-
     @GetMapping("/intereses")
     List<DtoInteres> listarIntereses();
 }
