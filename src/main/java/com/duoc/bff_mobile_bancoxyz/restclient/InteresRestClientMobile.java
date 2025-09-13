@@ -9,8 +9,8 @@ import com.duoc.bff_mobile_bancoxyz.dtos.DtoCuentaAnual;
 import com.duoc.bff_mobile_bancoxyz.dtos.DtoInteres;
 import com.duoc.bff_mobile_bancoxyz.dtos.DtoTransaccion;
 
-@FeignClient(name = "bancoxyz", url = "http://localhost:8081/banco/api")
-public interface RestClientBancoXyzMobile {
+@FeignClient(name = "bancoxyz", url = "http://localhost:8083/banco/api")
+public interface InteresRestClientMobile {
 
     @GetMapping("/transacciones")
     List<DtoTransaccion> listarTransacciones();

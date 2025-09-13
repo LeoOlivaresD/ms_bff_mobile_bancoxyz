@@ -8,14 +8,14 @@ import org.springframework.stereotype.Service;
 import com.duoc.bff_mobile_bancoxyz.dtos.DtoCuentaAnual;
 import com.duoc.bff_mobile_bancoxyz.dtos.DtoInteres;
 import com.duoc.bff_mobile_bancoxyz.dtos.DtoTransaccion;
-import com.duoc.bff_mobile_bancoxyz.restclient.RestClientBancoXyzMobile;
+import com.duoc.bff_mobile_bancoxyz.restclient.InteresRestClientMobile;
 
 @Service
 public class BffServiceMobile {
     @Autowired
-    private RestClientBancoXyzMobile restClientBancoXyz;
+    private InteresRestClientMobile restClientBancoXyz;
 
-    public BffServiceMobile(RestClientBancoXyzMobile restClientBancoXyz) {
+    public BffServiceMobile(InteresRestClientMobile restClientBancoXyz) {
         this.restClientBancoXyz = restClientBancoXyz;
     }
 
