@@ -1,0 +1,256 @@
+version: '3.8'
+
+services:
+  # Base de datos MySQL
+  bd_banco_xyz:
+    image: leonardo946/bd-bancoxyz-image
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: banco_xyz
+      MYSQL_USER: leo
+      MYSQL_PASSWORD: 1234
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "leo", "-p1234"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - db-data:/var/lib/mysql
+    networks:
+      - banco-network
+
+  # Config Server
+  config-server:
+    image: leonardo946/config-server-image
+    ports:
+      - 8888:8888
+    environment:
+      SPRING_PROFILES_ACTIVE: native
+      SPRING_CLOUD_CONFIG_SERVER_NATIVE_SEARCH_LOCATIONS: file:/config
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8888/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    networks:
+      - banco-network
+
+  # Eureka Server
+  eureka-server:
+    image: leonardo946/eureka-server-image
+    ports:
+      - 8761:8761
+    depends_on:
+      config-server:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8761/actuator/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    networks:
+      - banco-network
+
+ # API Gateway
+  api-gateway:
+    image: leonardo946/api-gateway-image
+    ports:
+      - 8084:8084
+    depends_on:
+      - eureka-server
+      - config-server
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+    networks:
+      - banco-network
+
+  # Microservicios
+  ms-interes-bancoxyz:
+    image: leonardo946/ms-interes-image
+    ports:
+      - 8083:8083
+    depends_on:
+      - bd_banco_xyz
+      - eureka-server
+      - config-server
+    environment:
+      SPRING_PROFILES_ACTIVE: default
+      #SPRING_CONFIG_IMPORT: optional:configserver:http://config-server:8888
+
+    networks:
+      - banco-network
+
+  spring-batch:
+    image: leonardo946/ms-spring-batch-image
+    ports:
+      - 1212:1212
+    depends_on:
+      config-server:
+        condition: service_healthy
+      eureka-server:
+        condition: service_healthy
+      bd_banco_xyz:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: default
+    networks:
+      - banco-network
+
+  ms-transaccion-bancoxyz:
+      image: leonardo946/ms-transaccion-image
+      ports:
+        - 8082:8082
+      depends_on:
+      - bd_banco_xyz
+      - eureka-server
+      - config-server
+      environment:
+        SPRING_PROFILES_ACTIVE: default
+      networks:
+        - banco-network
+
+  bancoxyz:
+      image: leonardo946/ms-cuentas-anuales-image
+      ports:
+        - 8081:8081
+      depends_on:
+      - bd_banco_xyz
+      - eureka-server
+      - config-server
+      environment:
+        SPRING_PROFILES_ACTIVE: default
+      networks:
+        - banco-network
+ # BFFs
+  bff_web_bancoxyz:
+    image: leonardo946/bff-web-bancoxyz-image
+    ports:
+      - 9443:9443
+    depends_on:
+      - eureka-server
+      - config-server
+    environment:
+      SPRING_PROFILES_ACTIVE: default
+    networks:
+      - banco-network
+
+  bff_mobile_bancoxyz:
+    image: leonardo946/bff-mobile-bancoxyz-image
+    ports:
+      - 8443:8443
+    depends_on:
+      - eureka-server
+      - config-server
+    environment:
+      SPRING_PROFILES_ACTIVE: default
+    networks:
+      - banco-network
+
+  bff-cajero-automatico-bancoxyz:
+    image: leonardo946/bff-cajero-automatico-image
+    ports:
+      - 7443:7443
+    depends_on:
+      - eureka-server
+      - config-server
+    environment:
+      SPRING_PROFILES_ACTIVE: default
+    networks:
+      - banco-network
+
+ # Kafka y Zookeeper
+  zookeeper-1:
+    image: confluentinc/cp-zookeeper:7.4.0
+    ports:
+      - 22181:2181
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - banco-network
+
+  zookeeper-2:
+    image: confluentinc/cp-zookeeper:7.4.0
+    ports:
+      - 32181:2181
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    networks:
+      - banco-network
+
+  kafka-1:
+    image: confluentinc/cp-kafka:7.4.0
+    ports:
+      - 29092:29092
+    depends_on:
+      - zookeeper-1
+      - zookeeper-2
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-1:2181,zookeeper-2:2181
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-1:9092,EXTERNAL://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks:
+      - banco-network
+
+  kafka-2:
+    image: confluentinc/cp-kafka:7.4.0
+    ports:
+      - 39092:39092
+    depends_on:
+      - zookeeper-1
+      - zookeeper-2
+    environment:
+      KAFKA_BROKER_ID: 2
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper-1:2181,zookeeper-2:2181
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka-2:9092,EXTERNAL://localhost:39092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    networks:
+      - banco-network
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - 8090:8080
+    depends_on:
+      - kafka-1
+      - kafka-2
+    environment:
+      DYNAMIC_CONFIG_ENABLED: 'true'
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-1:9092,kafka-2:9092
+      KAFKA_CLUSTERS_0_ZOOKEEPER: zookeeper-1:2181,zookeeper-2:2181
+    networks:
+      - banco-network
+
+  kafka-producer:
+    image: leonardo946/kafka-producer-image
+    ports:
+      - 8080:8080
+    depends_on:
+      - kafka-1
+      - kafka-2
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-1:9092,kafka-2:9092
+      SPRING_APPLICATION_NAME: kafka-producer
+    networks:
+      - banco-network
+
+networks:
+  banco-network:
+    driver: bridge
+
+volumes:
+  db-data:
